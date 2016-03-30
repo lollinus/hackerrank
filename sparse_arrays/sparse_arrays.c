@@ -25,55 +25,117 @@
 
 #define N_MAX 1000
 #define Q_MAX 1000
+#define STR_MAX 21
+
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
+typedef struct str_lst {
+    struct str_lst *next;
+    char str[STR_MAX];
+    int count;
+} str_lst_t;
+
+int count_nodes(str_lst_t *s) {
+    int res = 0;
+    while(s) {
+        res++;
+        s = s->next;
+    }
+    return res;
+}
+
+void print_nodes(str_lst_t *s) {
+    while(s) {
+        fprintf(stderr, "{%s, %d}", s->str, s->count);
+        s = s->next;
+    }
+    fprintf(stderr, "\n");
+}
+
+str_lst_t *find_node(str_lst_t *s, char *q) {
+    while(s) {
+        if (strncmp(s->str, q, ARRAY_SIZE(s->str)) == 0) {
+            break;
+        }
+        s = s->next;
+    }
+    return s;
+}
+
+str_lst_t *add_node(str_lst_t *s, char *str) {
+    str_lst_t *new_node = malloc(sizeof(*new_node));
+    strncpy(new_node->str, str, ARRAY_SIZE(new_node->str));
+    new_node->count = 1;
+    new_node->next = s;
+    return new_node;
+}
+
+/** 
+ * Add string to list. 
+ * If string already exits then increment counter.
+ * If string doesn't exist then add new string with counter set to 1.
+ *
+ * @param s list to which add string
+ * @param str string to be added
+ *
+ * @return 
+ */
+str_lst_t *add_inc_str(str_lst_t *s, char *str) {
+    str_lst_t *node = find_node(s, str);
+    if (node) {
+        node->count++;
+    } else {
+        s = add_node(s, str);
+    }
+    return s;
+}
 
 int main() {
     int N;
     int Q;
     int i;
-    char **strings;
+    str_lst_t *strings;
     char **queries;
-    int count;
-    int last_found;
 
     fprintf(stderr, "Let's begin\n");
     scanf("%d\n", &N);
 
     fprintf(stderr, "N=%d\n", N);
-    strings = malloc(sizeof(*strings) * N);
-    /* ZERO init strings */
-    memset(strings, 0, sizeof(*strings) * N);
+    strings = malloc(sizeof(*strings));
+    memset(strings, 0, sizeof(*strings));
     for (i = 0; i < N; i++) {
-        strings[i] = malloc(sizeof(*(strings[i])) * 21);
-        scanf("%20s\n", strings[i]);
+        char str[STR_MAX];
+        scanf("%20s\n", str);
+        strings->next = add_inc_str(strings->next, str);
     }
 
     scanf("%d\n", &Q);
     fprintf(stderr, "Q=%d\n", Q);
-    queries = malloc(sizeof(*queries) * Q);
-    memset(queries, 0, sizeof(*queries) * Q);
-    
+    queries = calloc(Q, sizeof(char*));
+    if (queries == 0) {
+        perror("Query array allocation failed\n");
+    }
     for (i = 0; i < Q; i++) {
-        queries[i] = malloc(sizeof(*(strings[i])) * 21);
+        queries[i] = (char*)malloc(sizeof(char) * STR_MAX);
         scanf("%20s\n", queries[i]);
     }
 
-    last_found = 0;
     for (i = 0; i < Q; i++) {
-        count = 0;
-        int j;
-        for (j = last_found; j < N; j++) {
-            if (strcmp(strings[j], queries[i]) == 0) {
-                count++;
-                last_found = j;
-            }
+        str_lst_t *found = find_node(strings->next, queries[i]);
+        if (found) {
+            fprintf(stdout, "%d\n", found->count);
+        } else {
+            fprintf(stdout, "%d\n", 0);
         }
-        fprintf(stdout, "%d\n", count);
     }
 
-    for (i = 0; i < N; i++) {
-        free(strings[i]);
+    print_nodes(strings->next);
+    /* cleanup */
+    while (strings) {
+        str_lst_t *next = strings->next;
+        free(strings);
+        strings = next;
     }
-    free(strings);
     for (i = 0; i < Q; i++) {
         free(queries[i]);
     }
